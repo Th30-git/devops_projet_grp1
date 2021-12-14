@@ -9,6 +9,8 @@ dependencies:
     version: 9.x.x
   - name: common
     repository: https://charts.bitnami.com/bitnami
+  - name: helm
+    repository: https://charts.helm.sh/stable
     tags:
       - bitnami-common
     version: 1.x.x
