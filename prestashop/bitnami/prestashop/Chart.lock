@@ -5,9 +5,7 @@ dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 1.10.3
-data:
-  helm.repositories: |
-    - url: https://charts.helm.sh/stable
-      name: stable
+- name: helm
+  repository: https://charts.helm.sh/stable
 digest: sha256:efb74a3741f2688ce9e9b619ae2d92292846d431dff5e3678f6816eb51674a3b
 generated: "2021-12-08T02:42:39.575652546Z"
