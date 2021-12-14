@@ -1,3 +1,27 @@
+{{/* vim: set filetype=mustache: */}}
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "prestashop.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "prestashop.fullname" -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "prestashop.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
 {{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
@@ -25,7 +49,7 @@ When using Ingress, it will be set to the Ingress hostname.
 */}}
 {{- define "prestashop.host" -}}
 {{- if .Values.ingress.enabled }}
-{{- $host := .Values.ingress.hostname | default "" -}}
+{{- $host := (index .Values.ingress.hosts 0).name | default "" -}}
 {{- default (include "prestashop.serviceIP" .) $host -}}
 {{- else -}}
 {{- $host := index .Values (printf "%sHost" .Chart.Name) | default "" -}}
@@ -34,122 +58,34 @@ When using Ingress, it will be set to the Ingress hostname.
 {{- end -}}
 
 {{/*
-Return the proper certificate image name
-*/}}
-{{- define "certificates.image" -}}
-{{- include "common.images.image" ( dict "imageRoot" .Values.certificates.image "global" .Values.global ) -}}
-{{- end -}}
-
-{{/*
-Return the proper PrestaShop image name
+Return the proper Prestashop image name
 */}}
 {{- define "prestashop.image" -}}
-{{- include "common.images.image" (dict "imageRoot" .Values.image "global" .Values.global) -}}
+{{- $registryName := .Values.image.registry -}}
+{{- $repositoryName := .Values.image.repository -}}
+{{- $tag := .Values.image.tag | toString -}}
+{{/*
+Helm 2.11 supports the assignment of a value to a variable defined in a different scope,
+but Helm 2.9 and 2.10 doesn't support it, so we need to implement this if-else logic.
+Also, we can't use a single if because lazy evaluation is not an option
+*/}}
+{{- if .Values.global }}
+    {{- if .Values.global.imageRegistry }}
+        {{- printf "%s/%s:%s" .Values.global.imageRegistry $repositoryName $tag -}}
+    {{- else -}}
+        {{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
+    {{- end -}}
+{{- else -}}
+    {{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
 Return the proper image name (for the metrics image)
 */}}
-{{- define "prestashop.metrics.image" -}}
-{{- include "common.images.image" (dict "imageRoot" .Values.metrics.image "global" .Values.global) -}}
-{{- end -}}
-
-{{/*
-Return the proper image name (for the init container volume-permissions image)
-*/}}
-{{- define "prestashop.volumePermissions.image" -}}
-{{- include "common.images.image" ( dict "imageRoot" .Values.volumePermissions.image "global" .Values.global ) -}}
-{{- end -}}
-
-{{/*
-Return the proper Docker Image Registry Secret Names
-*/}}
-{{- define "prestashop.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.image .Values.metrics.image .Values.volumePermissions.image .Values.certificates.image) "global" .Values.global) -}}
-{{- end -}}
-
-{{/*
-Return  the proper Storage Class
-*/}}
-{{- define "prestashop.storageClass" -}}
-{{- include "common.storage.class" (dict "persistence" .Values.persistence "global" .Values.global) -}}
-{{- end -}}
-
-{{/*
-PrestaShop credential secret name
-*/}}
-{{- define "prestashop.secretName" -}}
-{{- coalesce .Values.existingSecret (include "common.names.fullname" .) -}}
-{{- end -}}
-
-{{/*
-Return the MariaDB Hostname
-*/}}
-{{- define "prestashop.databaseHost" -}}
-{{- if .Values.mariadb.enabled }}
-    {{- if eq .Values.mariadb.architecture "replication" }}
-        {{- printf "%s-%s" (include "prestashop.mariadb.fullname" .) "primary" | trunc 63 | trimSuffix "-" -}}
-    {{- else -}}
-        {{- printf "%s" (include "prestashop.mariadb.fullname" .) -}}
-    {{- end -}}
-{{- else -}}
-    {{- printf "%s" .Values.externalDatabase.host -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the MariaDB Port
-*/}}
-{{- define "prestashop.databasePort" -}}
-{{- if .Values.mariadb.enabled }}
-    {{- printf "3306" -}}
-{{- else -}}
-    {{- printf "%d" (.Values.externalDatabase.port | int ) -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the MariaDB Database Name
-*/}}
-{{- define "prestashop.databaseName" -}}
-{{- if .Values.mariadb.enabled }}
-    {{- printf "%s" .Values.mariadb.auth.database -}}
-{{- else -}}
-    {{- printf "%s" .Values.externalDatabase.database -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the MariaDB User
-*/}}
-{{- define "prestashop.databaseUser" -}}
-{{- if .Values.mariadb.enabled }}
-    {{- printf "%s" .Values.mariadb.auth.username -}}
-{{- else -}}
-    {{- printf "%s" .Values.externalDatabase.user -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the MariaDB Secret Name
-*/}}
-{{- define "prestashop.databaseSecretName" -}}
-{{- if .Values.mariadb.enabled }}
-    {{- printf "%s" (include "prestashop.mariadb.fullname" .) -}}
-{{- else if .Values.externalDatabase.existingSecret -}}
-    {{- printf "%s" .Values.externalDatabase.existingSecret -}}
-{{- else -}}
-    {{- printf "%s-%s" (include "common.names.fullname" .) "externaldb" -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-Return the database password key
-*/}}
-{{- define "prestashop.databasePasswordKey" -}}
-{{- if .Values.mariadb.enabled -}}
-mariadb-password
-{{- else -}}
-db-password
-{{- end -}}
+{{- define "metrics.image" -}}
+{{- $registryName :=  .Values.metrics.image.registry -}}
+{{- $repositoryName := .Values.metrics.image.repository -}}
+{{- $tag := .Values.metrics.image.tag | toString -}}
+{{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
 {{- end -}}
