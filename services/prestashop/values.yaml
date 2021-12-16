@@ -733,12 +733,12 @@ networkPolicy:
     enabled: false
     ## e.g:
     ## podSelector:
-         label: prestashop
+    ##   label: monitoring
     ##
     podSelector: {}
     ## e.g:
     ## namespaceSelector:
-         label: prestashop
+    ##   label: monitoring
     ##
     namespaceSelector: {}
   ## @param networkPolicy.ingress.enabled Enable network policy for Ingress Proxies
@@ -749,7 +749,7 @@ networkPolicy:
     enabled: false
     ## e.g:
     ## podSelector:
-         label: prestashop
+    ##   label: ingress
     ##
     podSelector: {}
     ## e.g:
@@ -775,12 +775,12 @@ networkPolicy:
       enabled: false
       ## e.g:
       ## namespaceSelector:
-           label: prestashop
+      ##   label: ingress
       ##
       namespaceSelector: {}
       ## e.g:
       ## podSelector:
-          label: prestashop
+      ##   label: access
       ##
       podSelector: {}
     ## custom ingress rules
