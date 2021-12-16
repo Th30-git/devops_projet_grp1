@@ -26,6 +26,7 @@ maintainers:
   - email: containers@bitnami.com
     name: Bitnami
 name: prestashop
+labels: prestashop
 sources:
   - https://github.com/bitnami/bitnami-docker-prestashop
   - https://prestashop.com/
