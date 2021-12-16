@@ -1,0 +1,182 @@
+
+## Installation et mise en place de l'environnement de travail pour la réalisation du projet de groupe pour le module d'Orchestration ##
+## ATTENTION: Mise en place sur un système Debian bullseye 11.1, CPU 12 coeurs, 16 Go RAM
+
+
+
+
+
+
+##  ---------------------------------------------------------------  ##
+##  Préparation de l'environnement pour la mise en place du service  ##
+##  ---------------------------------------------------------------  ##
+
+
+
+## (Faclutatif) Installation de l'application Visual Studio Code
+#   Installation de Visual Studio Code 
+#   https://code.visualstudio.com/download
+
+
+## (Facultatif) Installation de GitHub Desktop pour la gestion du repository
+#   Installation de GitHub Desktop
+sudo wget https://github.com/shiftkey/desktop/releases/download/release-2.9.3-linux3/GitHubDesktop-linux-2.9.3-linux3.deb
+sudo apt install gdebi-core
+sudo gdebi GitHubDesktop-linux-2.9.3-linux3.deb
+
+
+## Installation d'un logiciel de virtualisation
+#   Installation de VirtualBox 6.1.30
+#   (KVM est aussi valable, se réfèrer à la fiche d'installation https://www.linux-kvm.org/page/Main_Page)
+#   https://download.virtualbox.org/virtualbox/6.1.30/virtualbox-6.1_6.1.30-148432~Debian~bullseye_amd64.deb
+
+
+## Installation de Docker
+#   Mise à jour
+sudo apt update
+sudo apt upgrade
+#   Instalation des packages préréquis, depuis HTTPS
+sudo apt install apt-transport-https ca-certificates curl gnupg2 software-properties-common
+#   Ajout de la clé GPG sur le système pour le repository officiel Docker
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+#   Ajout du repository Docker pour les sources APT
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+#   Mise à jour
+sudo apt update
+sudo apt upgrade
+#   S'assurer que l'installation s'effectue depuis le repository de Docker, et non celui de Debian
+apt-cache policy docker-ce
+#   Installation de Docker
+sudo apt install docker-ce
+#   Vérifier le status de Docker, si ce dernier est atif vous pouvez passer à la suite
+sudo systemctl status docker
+
+
+## Installation de Kubernetes
+#   Permettre à iptables de voir le trafic ponté
+#   Assurez-vous que le module br_netfilter est chargé. Cela peut être fait en exécutant la commande suivante 
+lsmod | grep br_netfilter
+#   Pour le charger explicitement
+sudo modprobe br_netfilter.
+#   Pour que les iptables de votre nœud Linux voient correctement le trafic ponté, vous devez vous assurer que net.bridge.bridge-nf-call-iptables est défini sur 1 dans votre configuration sysctl
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+et.bridge.bridge-nf-call-iptables = 1
+EOF
+sudo sysctl --system
+#   Installation de kubeadm, des kubelets et de kubectl
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+#   Redémarrage de la kubelet
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+#   Vérifier le status de kubelet, si ce dernier est atif vous pouvez passer à la suite
+sudo systemctl status kubelet
+
+
+## Installation de Minikube
+#   Pour vérifier si la virtualisation est prise en charge sur le système, exécutez la commande suivante et vérifiez que la sortie n'est pas vide
+grep -E --color 'vmx|svm' /proc/cpuinfo
+#   Installez Minikube par téléchargement direct (binaire autonome)
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64   && chmod +x minikube
+#   Ajout de l'exécutable Minikube au path
+sudo mkdir -p /usr/local/bin/
+sudo install minikube /usr/local/bin/
+#   Vérifier le retour de la commande suivante, si cette dernière retourne un manuel vous pouvez continuer
+minikube
+
+
+## Installation de Helm
+#   Installation depuis la package APT créé par la communauté
+curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+sudo apt-get install apt-transport-https --yes
+echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+
+
+## Vérification de nos installations
+docker
+kubectl
+minikube
+helm
+
+
+## Création du premier cluster kubectl/minikube
+minikube start
+#   Le retour doit être similaire à celui-ci:
+#
+#   😄  minikube v1.24.0 sur Debian 11.1
+#   ✨  Choix automatique du pilote virtualbox
+#   👍  Démarrage du noeud de plan de contrôle minikube dans le cluster minikube
+#   🔥  Création de VM virtualbox (CPUs=2, Mémoire=3900MB, Disque=20000MB)...
+#   🐳  Préparation de Kubernetes v1.22.3 sur Docker 20.10.8...
+#       ▪ Génération des certificats et des clés
+#       ▪ Démarrage du plan de contrôle ...
+#       ▪ Configuration des règles RBAC ...
+#   🔎  Vérification des composants Kubernetes...
+#       ▪ Utilisation de l'image gcr.io/k8s-minikube/storage-provisioner:v5
+#   🌟  Modules activés: storage-provisioner, default-storageclass
+#   🏄  Terminé ! kubectl est maintenant configuré pour utiliser "minikube" cluster et espace de noms "default" par défaut.
+#
+#   Vérification de l'état
+minikube status
+
+
+
+
+
+##  ------------------------  ##
+##  Mise en place du service  ##
+##  ------------------------  ##
+
+
+
+## Mise en place d'ArgoCD
+#   Création du namespace argocd
+kubectl create namespace argocd
+#   Mise en place d'ArgoCD
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#   Vérification de la mise en place des pods
+kubectl get pods --namespace argocd
+#   Port Forwarding du service ArgoCD (argocd-server) sur le port 8080 du localhost
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+#   Depuis un autre shell: Récupération du mot de passe
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64
+#/#   Si le mot de passe de l'étape précédente ne fonctionne pas:
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
+#/#   Puis décodez le résultat sur le site https://www.base64decode.org/
+
+## Connexion à l'interface ArgoCD pour la mise en place du service Prestashop
+#   Accèder à ArgoCD depuis l'adresse https://localhost:8080
+#   Identification - User: admin - MDP: <valeur retournée à l'étape précédente>
+
+
+## Mise en place de Prestashop
+#   Depuis l'interface graphique: Ajoutez une application
+#   Application Name: prestashop
+#   Project: default
+#   SYNC POLICY: Manual
+#   Repository URL: https://github.com/Th30-git/devops_projet_grp1.git
+#   Revision: HEAD
+#   Path: services/prestashop
+#   Cluster URL: https://kubernetes.default.svc
+#   Namespace: default
+#   ATTENTION: NE PAS MODIFIER LES VALEURS DE LA CATEGORIE HELM
+#
+#   Créer puis Synchroniser l'application
+
+
+## Connexion au service Prestashop 
+#   Activation du tunnel minikube
+minikube tunnel
+#   Depuis un autre shell: Récupèrer l'adresse IP externe
+kubectl get all -n default
+#   Connexion à l'interface WEB
+#   http://<ADRESSE_PUBLIQUE>:<PORT_DU_SERVICE>
