@@ -144,7 +144,7 @@ kubectl create namespace argocd
 #   Mise en place d'ArgoCD
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 #   Vérification de la mise en place des pods
-kubectl get pods --namespace argocd
+kubectl get pods --namespace argocd -w
 #   Port Forwarding du service ArgoCD (argocd-server) sur le port 8080 du localhost
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 #   Depuis un autre shell: Récupération du mot de passe
