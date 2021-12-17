@@ -148,7 +148,7 @@ kubectl get pods --namespace argocd
 #   Port Forwarding du service ArgoCD (argocd-server) sur le port 8080 du localhost
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 #   Depuis un autre shell: Récupération du mot de passe
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode
 #/#   Si le mot de passe de l'étape précédente ne fonctionne pas:
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
 #/#   Puis décodez le résultat sur le site https://www.base64decode.org/
