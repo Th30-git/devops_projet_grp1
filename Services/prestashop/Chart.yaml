@@ -14,7 +14,7 @@ dependencies:
     version: 1.x.x
 description: A popular open source ecommerce solution. Professional tools are easily accessible to increase online sales including instant guest checkout, abandoned cart reminders and automated Email marketing.
 engine: gotpl
-home: https://github.com/bitnami/charts/tree/master/bitnami/prestashop
+home: https://github.com/Th30-git/devops_projet_grp1/tree/main/Services/prestashop
 icon: https://bitnami.com/assets/stacks/prestashop/img/prestashop-stack-220x234.png
 keywords:
   - prestashop
